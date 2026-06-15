@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trivia Quiz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:    #0f0f14;
+    --paper:  #f7f6f2;
+    --mid:    #c8c6be;
+    --spark:  #ff5c28;
+    --cool:   #1a3fff;
+    --win:    #00b87c;
+    --lose:   #e02020;
+    --card:   #ffffff;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  /* ── LAYOUT ── */
+  #app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 18px 22px 14px;
+    gap: 12px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    background: var(--spark);
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .score-pill {
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 99px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── CATEGORY STRIP ── */
+  .cat-strip {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .cat-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1.5px solid var(--mid);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .cat-btn:hover { border-color: var(--ink); }
+
+  .cat-btn.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* ── QUESTION CARD ── */
+  .card {
+    flex: 1;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px 26px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--spark), var(--cool));
+  }
+
+  .q-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .q-tag {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--spark);
+  }
+
+  .q-num {
+    font-size: 0.7rem;
+    color: var(--mid);
+    font-weight: 500;
+  }
+
+  .q-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.08rem;
+    font-weight: 700;
+    line-height: 1.4;
+    flex-shrink: 0;
+  }
+
+  /* ── OPTIONS ── */
+  .options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .opt-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1.5px solid #e8e7e3;
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    line-height: 1.35;
+    transition: border-color 0.12s, background 0.12s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .opt-btn:hover:not(:disabled) {
+    border-color: var(--cool);
+    transform: translateY(-1px);
+  }
+
+  .opt-btn:disabled { cursor: default; transform: none; }
+
+  .opt-btn.correct {
+    background: #e6f9f2;
+    border-color: var(--win);
+    color: var(--win);
+  }
+
+  .opt-btn.wrong {
+    background: #fdeaea;
+    border-color: var(--lose);
+    color: var(--lose);
+  }
+
+  .opt-label {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    background: var(--mid);
+    color: var(--card);
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .opt-btn.correct .opt-label { background: var(--win); }
+  .opt-btn.wrong   .opt-label { background: var(--lose); }
+
+  /* ── FEEDBACK BAR ── */
+  .feedback {
+    flex-shrink: 0;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .feedback-msg {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--mid);
+    transition: color 0.2s;
+  }
+
+  .feedback-msg.right { color: var(--win); }
+  .feedback-msg.wrong { color: var(--lose); }
+
+  .next-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: none;
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    flex-shrink: 0;
+  }
+
+  .next-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .next-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+  /* ── LOADING STATE ── */
+  .loading {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--mid);
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2.5px solid var(--mid);
+    border-top-color: var(--spark);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── RESULTS ── */
+  .results {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .results-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--spark);
+  }
+
+  .results-label {
+    font-size: 0.8rem;
+    color: var(--mid);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .results-msg {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+
+  .restart-btn {
+    margin-top: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 10px 26px;
+    border-radius: 9px;
+    border: none;
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .restart-btn:hover { opacity: 0.8; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-track {
+    height: 3px;
+    background: #e8e7e3;
+    border-radius: 2px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--spark), var(--cool));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo"><span class="logo-dot"></span>Trivia</div>
+    <div class="score-pill" id="score-display">0 / 0</div>
+  </header>
+
+  <div class="cat-strip" id="cat-strip">
+    <button class="cat-btn active" data-cat="General Knowledge">General</button>
+    <button class="cat-btn" data-cat="Science & Nature">Science</button>
+    <button class="cat-btn" data-cat="History">History</button>
+    <button class="cat-btn" data-cat="Geography">Geography</button>
+    <button class="cat-btn" data-cat="Pop Culture">Pop Culture</button>
+    <button class="cat-btn" data-cat="Sports">Sports</button>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+  <div class="card" id="card">
+    <div class="loading" id="loading-state">
+      <div class="spinner"></div>
+      Generating question…
+    </div>
+
+    <div id="question-state" class="hidden" style="display:flex;flex-direction:column;gap:14px;height:100%;">
+      <div class="q-meta">
+        <span class="q-tag" id="q-category">General Knowledge</span>
+        <span class="q-num" id="q-num">Q 1</span>
+      </div>
+      <div class="q-text" id="q-text"></div>
+      <div class="options" id="options"></div>
+    </div>
+
+    <div id="results-state" class="results hidden">
+      <div class="results-label">Final Score</div>
+      <div class="results-score" id="results-score">0/10</div>
+      <div class="results-msg" id="results-msg"></div>
+      <button class="restart-btn" id="restart-btn">Play Again</button>
+    </div>
+  </div>
+
+  <div class="feedback" id="feedback-bar">
+    <div class="feedback-msg" id="feedback-msg">Pick an answer to begin</div>
+    <button class="next-btn" id="next-btn" disabled>Next →</button>
+  </div>
+</div>
+
+<script>
+const TOTAL_QUESTIONS = 10;
+const LABELS = ['A', 'B', 'C', 'D'];
+
+let state = {
+  category: 'General Knowledge',
+  questionIndex: 0,
+  score: 0,
+  answered: false,
+  loading: false,
+  currentQuestion: null,
+  history: [],  // avoid repeats
+};
+
+// ── DOM refs ──
+const loadingEl   = document.getElementById('loading-state');
+const questionEl  = document.getElementById('question-state');
+const resultsEl   = document.getElementById('results-state');
+const qCatEl      = document.getElementById('q-category');
+const qNumEl      = document.getElementById('q-num');
+const qTextEl     = document.getElementById('q-text');
+const optionsEl   = document.getElementById('options');
+const feedbackMsg = document.getElementById('feedback-msg');
+const nextBtn     = document.getElementById('next-btn');
+const scoreDisp   = document.getElementById('score-display');
+const progressEl  = document.getElementById('progress');
+const restartBtn  = document.getElementById('restart-btn');
+const catStrip    = document.getElementById('cat-strip');
+
+// ── Category buttons ──
+catStrip.addEventListener('click', e => {
+  const btn = e.target.closest('.cat-btn');
+  if (!btn || state.loading) return;
+  catStrip.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.category = btn.dataset.cat;
+  if (!state.answered && state.questionIndex === 0) {
+    fetchQuestion();
+  }
+});
+
+nextBtn.addEventListener('click', () => {
+  if (!state.answered) return;
+  state.questionIndex++;
+  if (state.questionIndex >= TOTAL_QUESTIONS) {
+    showResults();
+  } else {
+    fetchQuestion();
+  }
+});
+
+restartBtn.addEventListener('click', () => {
+  state = { ...state, questionIndex: 0, score: 0, answered: false, loading: false, history: [] };
+  updateScore();
+  updateProgress();
+  showLoading();
+  fetchQuestion();
+});
+
+// ── API call ──
+async function fetchQuestion() {
+  state.answered = false;
+  state.loading = true;
+  nextBtn.disabled = true;
+  feedbackMsg.textContent = 'Generating question…';
+  feedbackMsg.className = 'feedback-msg';
+  showLoading();
+
+  const avoidList = state.history.slice(-8).join(' | ');
+  const prompt = `Generate a single trivia question for the category "${state.category}".
+Rules:
+- Exactly 4 answer options (A, B, C, D), only one correct.
+- Medium difficulty — interesting but fair.
+- Do NOT repeat these recent questions: ${avoidList || 'none yet'}.
+Respond ONLY with valid JSON, no markdown, no extra text:
+{
+  "question": "...",
+  "options": ["...", "...", "...", "..."],
+  "correctIndex": 0
+}
+correctIndex is 0-based index of the correct option in the options array.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content.map(b => b.text || '').join('').trim()
+      .replace(/^```json\s*/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+
+    const q = JSON.parse(text);
+    state.currentQuestion = q;
+    state.history.push(q.question);
+    state.loading = false;
+    renderQuestion(q);
+  } catch (err) {
+    feedbackMsg.textContent = 'Error loading question. Retrying…';
+    setTimeout(fetchQuestion, 1500);
+  }
+}
+
+// ── Render ──
+function renderQuestion(q) {
+  qCatEl.textContent = state.category;
+  qNumEl.textContent = `Q ${state.questionIndex + 1}`;
+  qTextEl.textContent = q.question;
+
+  optionsEl.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.innerHTML = `<span class="opt-label">${LABELS[i]}</span><span>${opt}</span>`;
+    btn.addEventListener('click', () => handleAnswer(i));
+    optionsEl.appendChild(btn);
+  });
+
+  feedbackMsg.textContent = 'Choose the correct answer';
+  feedbackMsg.className = 'feedback-msg';
+  showQuestion();
+}
+
+function handleAnswer(chosen) {
+  if (state.answered) return;
+  state.answered = true;
+
+  const buttons = optionsEl.querySelectorAll('.opt-btn');
+  const correct = state.currentQuestion.correctIndex;
+
+  buttons.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === correct) btn.classList.add('correct');
+    else if (i === chosen) btn.classList.add('wrong');
+  });
+
+  if (chosen === correct) {
+    state.score++;
+    feedbackMsg.textContent = '✓ Correct!';
+    feedbackMsg.className = 'feedback-msg right';
+  } else {
+    feedbackMsg.textContent = `✗ The answer was ${LABELS[correct]}.`;
+    feedbackMsg.className = 'feedback-msg wrong';
+  }
+
+  updateScore();
+  nextBtn.disabled = false;
+  nextBtn.textContent = state.questionIndex + 1 >= TOTAL_QUESTIONS ? 'See Results →' : 'Next →';
+  updateProgress();
+}
+
+function updateScore() {
+  scoreDisp.textContent = `${state.score} / ${state.questionIndex + (state.answered ? 1 : 0)}`;
+}
+
+function updateProgress() {
+  const pct = ((state.questionIndex + (state.answered ? 1 : 0)) / TOTAL_QUESTIONS) * 100;
+  progressEl.style.width = pct + '%';
+}
+
+function showResults() {
+  const pct = Math.round((state.score / TOTAL_QUESTIONS) * 100);
+  document.getElementById('results-score').textContent = `${state.score}/${TOTAL_QUESTIONS}`;
+  const msgs = pct === 100 ? 'Perfect score! 🎉' : pct >= 80 ? 'Excellent work!' : pct >= 60 ? 'Solid effort!' : pct >= 40 ? 'Room to grow!' : 'Better luck next time!';
+  document.getElementById('results-msg').textContent = msgs;
+  progressEl.style.width = '100%';
+  feedbackMsg.textContent = '';
+  nextBtn.disabled = true;
+
+  loadingEl.classList.add('hidden');
+  questionEl.classList.add('hidden');
+  resultsEl.classList.remove('hidden');
+}
+
+function showLoading() {
+  loadingEl.classList.remove('hidden');
+  questionEl.classList.add('hidden');
+  resultsEl.classList.add('hidden');
+}
+
+function showQuestion() {
+  loadingEl.classList.add('hidden');
+  questionEl.classList.remove('hidden');
+  questionEl.style.display = 'flex';
+  resultsEl.classList.add('hidden');
+}
+
+// ── Boot ──
+fetchQuestion();
+</script>
+</body>
+</html>
